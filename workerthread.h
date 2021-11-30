@@ -43,8 +43,6 @@ public:
     void setBaseTransformMatrix(QMatrix4x4 baseTransformMatrix);
     void setTransformMatrix(QMatrix4x4 transformMatrix);
 
-    float calcIntensity(std::vector<QVector3D> *rawPoints, QVector3D light, QVector3D eye);
-    QVector3D calcTriangleNormal(std::vector<QVector3D> *points);
 private:
     QMainWindow *parentWindow;
 
@@ -53,6 +51,9 @@ private:
     unsigned int range;
 
     Model *model;
+
+    QVector3D light = QVector3D(0, 0, 1);
+    QVector3D eye = QVector3D(0, 0, 100);
 
     std::vector<QVector3D> *vertices;
     std::vector<QVector3D> *uvs;
@@ -77,8 +78,18 @@ private:
 
     std::vector<float> *zbuffer;
 
-    void setPixel(QVector3D point, QVector3D uvPoint, float intensity, int color=-1);
-    void drawTriangle (std::vector<QVector3D> *points, std::vector<QVector3D> *uvPoints, float intensity);
+    QVector3D getRawPoint(QVector3D point);
+
+    void setPixel(QVector3D point, QVector3D uvPoint, QVector3D currNormal, int color=-1);
+    void drawTriangle (std::vector<QVector3D> *points, std::vector<QVector3D> *uvPoints, std::vector<QVector3D> *currNormals);
+
+    QVector3D calcTriangleNormal(std::vector<QVector3D> *points);
+
+    float calcIntensity(std::vector<QVector3D> *rawPoints);
+    float calcDiffuseLight(QVector3D point, QVector3D rawPoint, QVector3D normal);
+
+    float calcBackgroundLight();
+    float backgroundLight = 0.1f * 1;
 
     Barrier barrier;
 signals:

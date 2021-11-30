@@ -34,17 +34,17 @@ void MainWindow::loadModel() {
     this->model = new Model();
 //    bool res = this->model->load("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/Merged_Demon9Pose1.obj");
 //    bool res = this->model->load("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/uploads-files-133955-Drachen_1/Drachen_1.0_obj.obj");
-//    bool res = this->model->load("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/head/head.obj");
+    bool res = this->model->load("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/head/head.obj");
 //    bool res = this->model->load("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/SlayerToy.obj");
-    bool res = this->model->load("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/ogloc/source/ogloc/ogloc.obj");
+//    bool res = this->model->load("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/ogloc/source/ogloc/ogloc.obj");
     this->vertices = this->model->getVertices();
     this->uvs = this->model->getUvs();
     this->normals = this->model->getNormals();
     this->isLoaded = res;
 
 //    res = this->model->loadDiffuseMap("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/uploads-files-133955-Drachen_1/textures/dragon_C.jpg");
-//    res = this->model->loadDiffuseMap("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/head/head_diffuse.jpg");
-    res = this->model->loadDiffuseMap("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/ogloc/textures/ogloc.png");
+    res = this->model->loadDiffuseMap("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/head/head_diffuse.jpg");
+//    res = this->model->loadDiffuseMap("/Users/yura-pc/Files/Study/4курс/1сем/АКГ/лабы/obj3d/obj/ogloc/textures/ogloc.png");
     this->diffuseMap = this->model->getDiffuseMap();
     this->isLoadedDiffuseMap = res;
 }

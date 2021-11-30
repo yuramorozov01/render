@@ -66,17 +66,11 @@ void WorkerThread::run() {
 
     std::vector<QVector3D> *rawPoints = new std::vector<QVector3D>(3);
 
-//    float *points = new float[9];
-//    float *uvPoints = new float[9];
-
     std::vector<QVector3D> *points = new std::vector<QVector3D>(3);
     std::vector<QVector3D> *uvPoints = new std::vector<QVector3D>(3);
-
-    QVector3D light = QVector3D(0, 1, 1);
-    QVector3D eye = QVector3D(0, 0, 100);
+    std::vector<QVector3D> *currNormals = new std::vector<QVector3D>(3);
 
     float intensity = 1.f;
-
     int temp_ind = 0;
 
     while (this->isEnabled) {
@@ -86,6 +80,7 @@ void WorkerThread::run() {
             rawPoints->clear();
             points->clear();
             uvPoints->clear();
+            currNormals->clear();
             for (unsigned int j = i; j < i + 3; j++) {
                 // Apply transform matrix to the source vector
                 // And convert it to 3d vector
@@ -109,11 +104,18 @@ void WorkerThread::run() {
                 temp_vect_3d.setZ(temp_vect_3d.z() * 1000);
                 uvPoints->push_back(temp_vect_3d);
 
+                // Get current normals for triangle
+                temp_vect_4d = this->normals->at(j).toVector4D();
+                temp_vect_4d.setW(1);
+                temp_vect_4d = this->transformMatrix * temp_vect_4d;
+                temp_vect_3d = this->model->vector4Dto3D(this->baseTransformMatrix.inverted() * temp_vect_4d);
+                currNormals->push_back(temp_vect_3d);
+
                 temp_ind += 3;
             }
-            intensity = this->calcIntensity(rawPoints, light, eye);
+            intensity = this->calcIntensity(rawPoints);
             if (intensity >= 0.f) {
-                this->drawTriangle(points, uvPoints, intensity);
+                this->drawTriangle(points, uvPoints, currNormals);
             }
             i += 3;
             if (i >= this->vertices->size()) {
@@ -127,7 +129,13 @@ void WorkerThread::run() {
     emit this->resultReady(result);
 }
 
-void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, float intensity, int color) {
+QVector3D WorkerThread::getRawPoint(QVector3D point) {
+    QVector4D tmp = point.toVector4D();
+    tmp.setW(1);
+    return this->model->vector4Dto3D(this->baseTransformMatrix.inverted() * tmp);
+}
+
+void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, QVector3D normal, int color) {
     if (point.x() <= 0 || uvPoint.x() <= 0) {
         return;
     }
@@ -147,30 +155,53 @@ void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, float intensity,
     int uv_x = uvPoint.x();
     int uv_y = uvPoint.y();
 
+    float totalLight = 1.f;
+    float backgroundLightValue = 0.f;
+    float diffuseLightValue = 0.f;
+    float mirrorLightValue = 1.f;
+
+    QVector3D rawPoint;
+
     int index = y * this->currWidth + x;
     if (index >= 0  && index < this->currHeight * this->currWidth) {
         if (z > this->zbuffer->at(index)) {
             this->zbuffer->at(index) = z;
+
+            rawPoint = this->getRawPoint(point);
+
+
+            backgroundLightValue = this->backgroundLight;
+            diffuseLightValue = this->calcDiffuseLight(point, rawPoint, normal);
+            mirrorLightValue = mirrorLightValue;
+
+//            totalLight = backgroundLightValue + diffuseLightValue + mirrorLightValue;
+            totalLight = backgroundLightValue + diffuseLightValue;
+
             QColor pixelColor = this->diffuseMap->pixelColor(uv_x, uv_y);
             this->buffer[4 * index + 3] = -1;
-            this->buffer[4 * index + 2] = intensity * pixelColor.red();
-            this->buffer[4 * index + 1] = intensity * pixelColor.green();
-            this->buffer[4 * index + 0] = intensity * pixelColor.blue();
+            this->buffer[4 * index + 2] = totalLight * pixelColor.red();
+            this->buffer[4 * index + 1] = totalLight * pixelColor.green();
+            this->buffer[4 * index + 0] = totalLight * pixelColor.blue();
         }
     }
 }
 
-float WorkerThread::calcIntensity(std::vector<QVector3D> *points, QVector3D light, QVector3D eye) {
-    QVector3D norm = this->model->cross(points->at(1) - points->at(0), points->at(2) - points->at(0)).normalized();
-    if (QVector3D::dotProduct(norm, eye) < 0) {
+float WorkerThread::calcIntensity(std::vector<QVector3D> *rawPoints) {
+    QVector3D norm = this->model->cross(rawPoints->at(1) - rawPoints->at(0), rawPoints->at(2) - rawPoints->at(0)).normalized();
+    if (QVector3D::dotProduct(norm, this->eye) < 0) {
         return -1;
     }
-    float intensity = QVector3D::dotProduct(norm, light.normalized());
+    float intensity = QVector3D::dotProduct(norm, this->light.normalized());
     return intensity < 0.f ? 0.f : intensity;
 }
 
+float WorkerThread::calcDiffuseLight(QVector3D point, QVector3D rawPoint, QVector3D normal) {
+    float diff = std::max(QVector3D::dotProduct(normal.normalized(), (this->light).normalized()), 0.f);
+    return diff * 1;
+}
 
-void WorkerThread::drawTriangle(std::vector<QVector3D> *points, std::vector<QVector3D> *uvPoints, float intensity) {
+
+void WorkerThread::drawTriangle(std::vector<QVector3D> *points, std::vector<QVector3D> *uvPoints, std::vector<QVector3D> *currNormals) {
     for (int i = 0; i < points->size(); i++) {
         points->at(i).setX(int(points->at(i).x()));
         points->at(i).setY(int(points->at(i).y()));
@@ -184,17 +215,24 @@ void WorkerThread::drawTriangle(std::vector<QVector3D> *points, std::vector<QVec
     QVector3D uvPoint1 = uvPoints->at(1);
     QVector3D uvPoint2 = uvPoints->at(2);
 
+    QVector3D currNormal0 = currNormals->at(0);
+    QVector3D currNormal1 = currNormals->at(1);
+    QVector3D currNormal2 = currNormals->at(2);
+
     if (point0.y() > point1.y()) {
         std::swap(point0, point1);
         std::swap(uvPoint0, uvPoint1);
+        std::swap(currNormal0, currNormal1);
     }
     if (point0.y() > point2.y()) {
         std::swap(point0, point2);
         std::swap(uvPoint0, uvPoint2);
+        std::swap(currNormal0, currNormal2);
     }
     if (point1.y() > point2.y()) {
         std::swap(point1, point2);
         std::swap(uvPoint1, uvPoint2);
+        std::swap(currNormal1, currNormal2);
     }
 
     int totalHeight = 1;
@@ -210,22 +248,28 @@ void WorkerThread::drawTriangle(std::vector<QVector3D> *points, std::vector<QVec
         }
         float alpha = float(i) / totalHeight;
         float beta = float(i - (secondHalf ? point1.y() - point0.y() : 0)) / segmentHeight;
+
         QVector3D A = point0 + (point2 - point0) * alpha;
         QVector3D B = secondHalf ? point1 + (point2 - point1) * beta : point0 + (point1 - point0) * beta;
 
         QVector3D uv_A = uvPoint0 + (uvPoint2 - uvPoint0) * alpha;
         QVector3D uv_B = secondHalf ? uvPoint1 + (uvPoint2 - uvPoint1) * beta : uvPoint0 + (uvPoint1 - uvPoint0) * beta;
 
+        QVector3D normal_A = currNormal0 + (currNormal2 - currNormal0) * alpha;
+        QVector3D normal_B = secondHalf ? currNormal1 + (currNormal2 - currNormal1) * beta : currNormal0 + (currNormal1 - currNormal0) * beta;
+
         if (A.x() > B.x()) {
             std::swap(A, B);
             std::swap(uv_A, uv_B);
+            std::swap(normal_A, normal_B);
         }
 
         for (int j = A.x(); j <= B.x(); j++) {
             float phi = int(B.x()) == int(A.x()) ? 1. : float(j - A.x()) / float(B.x() - A.x());
             QVector3D new_P = A + (B - A) * phi;
             QVector3D new_uv_P = uv_A + (uv_B - uv_A) * phi;
-            this->setPixel(new_P, new_uv_P, intensity);
+            QVector3D new_normal_P = normal_A + (normal_B - normal_A) * phi;
+            this->setPixel(new_P, new_uv_P, new_normal_P);
         }
     }
 }
