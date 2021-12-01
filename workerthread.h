@@ -52,8 +52,8 @@ private:
 
     Model *model;
 
-    QVector3D light = QVector3D(0, 1, 1);
-    QVector3D eye = QVector3D(0, 0, 100);
+    QVector3D light = QVector3D(1.f, 1.f, 0.f);
+    QVector3D eye = QVector3D(0.f, 0.f, 100.f);
 
     std::vector<QVector3D> *vertices;
     std::vector<QVector3D> *uvs;

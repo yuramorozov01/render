@@ -166,10 +166,10 @@ void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, QVector3D normal
             this->zbuffer->at(index) = z;
 
             backgroundLightValue = this->backgroundLight;
-//            diffuseLightValue = this->calcDiffuseLight(point, normal);
-//            mirrorLightValue = this->calcMirrorlight(point, normal);
+            diffuseLightValue = this->calcDiffuseLight(point, normal);
+            mirrorLightValue = this->calcMirrorlight(point, normal);
 
-//            totalLight = backgroundLightValue + diffuseLightValue + mirrorLightValue;
+            totalLight = backgroundLightValue + diffuseLightValue + mirrorLightValue;
 
             QColor pixelColor = this->diffuseMap->pixelColor(uv_x, uv_y);
             this->buffer[4 * index + 3] = -1;
@@ -191,20 +191,21 @@ bool WorkerThread::isBackfaceCulling(std::vector<QVector3D> *points) {
 
 float WorkerThread::calcDiffuseLight(QVector3D point, QVector3D normal) {
     QVector3D rawPoint = this->getRawPoint(point);
-    float diff = std::max(QVector3D::dotProduct(normal.normalized(), (rawPoint - this->light).normalized()), 0.f);
+    float diff = std::max(QVector3D::dotProduct(normal.normalized(), (this->light).normalized()), 0.f);
     return diff * 1;
 }
 
 float WorkerThread::calcMirrorlight(QVector3D point, QVector3D normal) {
     QVector3D rawPoint = this->getRawPoint(point);
     QVector3D viewDir = (this->eye - rawPoint).normalized();
-    float mirrorCoeff = 0.5f;
+    float mirrorCoeff = 0.7f;
     QVector3D normalNormalized = normal.normalized();
-    QVector3D lightNormalized = (this->light - rawPoint).normalized();
+    QVector3D lightNormalized = (this->light).normalized();
 
-    QVector3D R = lightNormalized - 2 * QVector3D::dotProduct(lightNormalized, normalNormalized) * normalNormalized;
+    QVector3D R = lightNormalized - 2 * QVector3D::dotProduct(normalNormalized, lightNormalized) * normalNormalized;
 
-    return mirrorCoeff * std::pow(std::max(QVector3D::dotProduct(R.normalized(), viewDir), 0.f), 32) * 1;
+    float mirrorLight = mirrorCoeff * std::pow(std::max(QVector3D::dotProduct(R.normalized(), viewDir), 0.f), 32) * 1;
+    return mirrorLight;
 }
 
 void WorkerThread::drawTriangle(std::vector<QVector3D> *points, std::vector<QVector3D> *uvPoints, std::vector<QVector3D> *currNormals) {
