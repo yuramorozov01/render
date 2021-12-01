@@ -189,9 +189,9 @@ void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, QVector3D normal
             QColor pixelColor = this->diffuseMap->pixelColor(uv_x, uv_y);
 
             this->buffer[4 * index + 3] = -1;
-            this->buffer[4 * index + 2] = totalLight * (pixelColor.red());
-            this->buffer[4 * index + 1] = totalLight * (pixelColor.green());
-            this->buffer[4 * index + 0] = totalLight * (pixelColor.blue());
+            this->buffer[4 * index + 2] = totalLight * (pixelColor.red() + mirrorLightValue.x());
+            this->buffer[4 * index + 1] = totalLight * (pixelColor.green() + mirrorLightValue.y());
+            this->buffer[4 * index + 0] = totalLight * (pixelColor.blue() + mirrorLightValue.z());
         }
     }
 }

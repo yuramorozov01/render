@@ -95,7 +95,7 @@ private:
     int currHeight = 900;
     int currDepth = 250;
 
-    unsigned int amountOfWorkers = 20;
+    unsigned int amountOfWorkers = 50;
     std::vector<WorkerThread*> workers;
     Barrier barrier = Barrier(0);
 
