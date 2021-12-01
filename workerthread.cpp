@@ -70,7 +70,7 @@ void WorkerThread::run() {
     std::vector<QVector3D> *uvPoints = new std::vector<QVector3D>(3);
     std::vector<QVector3D> *currNormals = new std::vector<QVector3D>(3);
 
-    float intensity = 1.f;
+    bool isBackfaceCullingFlag = false;
     int temp_ind = 0;
 
     while (this->isEnabled) {
@@ -113,8 +113,8 @@ void WorkerThread::run() {
 
                 temp_ind += 3;
             }
-            intensity = this->calcIntensity(rawPoints);
-            if (intensity >= 0.f) {
+            isBackfaceCullingFlag = this->isBackfaceCulling(points);
+            if (not isBackfaceCullingFlag) {
                 this->drawTriangle(points, uvPoints, currNormals);
             }
             i += 3;
@@ -124,8 +124,8 @@ void WorkerThread::run() {
         }
         this->barrier.wait();
     }
-    delete [] points;
-    delete [] uvPoints;
+    delete points;
+    delete uvPoints;
     emit this->resultReady(result);
 }
 
@@ -158,24 +158,18 @@ void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, QVector3D normal
     float totalLight = 1.f;
     float backgroundLightValue = 0.f;
     float diffuseLightValue = 0.f;
-    float mirrorLightValue = 1.f;
-
-    QVector3D rawPoint;
+    float mirrorLightValue = 0.f;
 
     int index = y * this->currWidth + x;
     if (index >= 0  && index < this->currHeight * this->currWidth) {
         if (z > this->zbuffer->at(index)) {
             this->zbuffer->at(index) = z;
 
-            rawPoint = this->getRawPoint(point);
-
-
             backgroundLightValue = this->backgroundLight;
-            diffuseLightValue = this->calcDiffuseLight(point, rawPoint, normal);
-            mirrorLightValue = mirrorLightValue;
+//            diffuseLightValue = this->calcDiffuseLight(point, normal);
+//            mirrorLightValue = this->calcMirrorlight(point, normal);
 
 //            totalLight = backgroundLightValue + diffuseLightValue + mirrorLightValue;
-            totalLight = backgroundLightValue + diffuseLightValue;
 
             QColor pixelColor = this->diffuseMap->pixelColor(uv_x, uv_y);
             this->buffer[4 * index + 3] = -1;
@@ -186,20 +180,32 @@ void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, QVector3D normal
     }
 }
 
-float WorkerThread::calcIntensity(std::vector<QVector3D> *rawPoints) {
-    QVector3D norm = this->model->cross(rawPoints->at(1) - rawPoints->at(0), rawPoints->at(2) - rawPoints->at(0)).normalized();
-    if (QVector3D::dotProduct(norm, this->eye) < 0) {
-        return -1;
+bool WorkerThread::isBackfaceCulling(std::vector<QVector3D> *points) {
+
+    QVector3D norm = this->model->cross(points->at(2) - points->at(0), points->at(1) - points->at(0)).normalized();
+    if (QVector3D::dotProduct(norm, this->eye.normalized()) < 0) {
+        return true;
     }
-    float intensity = QVector3D::dotProduct(norm, this->light.normalized());
-    return intensity < 0.f ? 0.f : intensity;
+    return false;
 }
 
-float WorkerThread::calcDiffuseLight(QVector3D point, QVector3D rawPoint, QVector3D normal) {
-    float diff = std::max(QVector3D::dotProduct(normal.normalized(), (this->light).normalized()), 0.f);
+float WorkerThread::calcDiffuseLight(QVector3D point, QVector3D normal) {
+    QVector3D rawPoint = this->getRawPoint(point);
+    float diff = std::max(QVector3D::dotProduct(normal.normalized(), (rawPoint - this->light).normalized()), 0.f);
     return diff * 1;
 }
 
+float WorkerThread::calcMirrorlight(QVector3D point, QVector3D normal) {
+    QVector3D rawPoint = this->getRawPoint(point);
+    QVector3D viewDir = (this->eye - rawPoint).normalized();
+    float mirrorCoeff = 0.5f;
+    QVector3D normalNormalized = normal.normalized();
+    QVector3D lightNormalized = (this->light - rawPoint).normalized();
+
+    QVector3D R = lightNormalized - 2 * QVector3D::dotProduct(lightNormalized, normalNormalized) * normalNormalized;
+
+    return mirrorCoeff * std::pow(std::max(QVector3D::dotProduct(R.normalized(), viewDir), 0.f), 32) * 1;
+}
 
 void WorkerThread::drawTriangle(std::vector<QVector3D> *points, std::vector<QVector3D> *uvPoints, std::vector<QVector3D> *currNormals) {
     for (int i = 0; i < points->size(); i++) {

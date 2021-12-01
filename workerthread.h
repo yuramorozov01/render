@@ -52,7 +52,7 @@ private:
 
     Model *model;
 
-    QVector3D light = QVector3D(0, 0, 1);
+    QVector3D light = QVector3D(0, 1, 1);
     QVector3D eye = QVector3D(0, 0, 100);
 
     std::vector<QVector3D> *vertices;
@@ -85,8 +85,10 @@ private:
 
     QVector3D calcTriangleNormal(std::vector<QVector3D> *points);
 
-    float calcIntensity(std::vector<QVector3D> *rawPoints);
-    float calcDiffuseLight(QVector3D point, QVector3D rawPoint, QVector3D normal);
+    bool isBackfaceCulling(std::vector<QVector3D> *points);
+
+    float calcDiffuseLight(QVector3D point, QVector3D normal);
+    float calcMirrorlight(QVector3D point, QVector3D normal);
 
     float calcBackgroundLight();
     float backgroundLight = 0.1f * 1;
