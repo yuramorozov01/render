@@ -39,6 +39,8 @@ public:
     void setUvs(std::vector<QVector3D> *uvs);
     void setNormals(std::vector<QVector3D> *normals);
     void setDiffuseMap(QImage *diffuseMap);
+    void setNormalMap(QImage *normalMap);
+    void setMirrorMap(QImage *mirrorMap);
 
     void setBaseTransformMatrix(QMatrix4x4 baseTransformMatrix);
     void setTransformMatrix(QMatrix4x4 transformMatrix);
@@ -52,13 +54,15 @@ private:
 
     Model *model;
 
-    QVector3D light = QVector3D(1.f, 1.f, 0.f);
+    QVector3D light = QVector3D(0.f, 1.f, 1.f);
     QVector3D eye = QVector3D(0.f, 0.f, 100.f);
 
     std::vector<QVector3D> *vertices;
     std::vector<QVector3D> *uvs;
     std::vector<QVector3D> *normals;
     QImage *diffuseMap;
+    QImage *normalMap;
+    QImage *mirrorMap;
 
     QMatrix4x4 transformMatrix = QMatrix4x4(1, 0, 0, 0,
                                             0, 1, 0, 0,
@@ -88,7 +92,7 @@ private:
     bool isBackfaceCulling(std::vector<QVector3D> *points);
 
     float calcDiffuseLight(QVector3D point, QVector3D normal);
-    float calcMirrorlight(QVector3D point, QVector3D normal);
+    QVector3D calcMirrorlight(QVector3D point, QVector3D normal, QVector3D mirrorCoeffFromMap);
 
     float calcBackgroundLight();
     float backgroundLight = 0.1f * 1;

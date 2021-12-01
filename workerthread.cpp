@@ -50,6 +50,14 @@ void WorkerThread::setDiffuseMap(QImage *diffuseMap) {
     this->diffuseMap = diffuseMap;
 }
 
+void WorkerThread::setNormalMap(QImage *normalMap) {
+    this->normalMap = normalMap;
+}
+
+void WorkerThread::setMirrorMap(QImage *mirrorMap) {
+    this->mirrorMap = mirrorMap;
+}
+
 void WorkerThread::setBaseTransformMatrix(QMatrix4x4 baseTransformMatrix) {
     this->baseTransformMatrix = baseTransformMatrix;
 }
@@ -158,30 +166,37 @@ void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, QVector3D normal
     float totalLight = 1.f;
     float backgroundLightValue = 0.f;
     float diffuseLightValue = 0.f;
-    float mirrorLightValue = 0.f;
+    QVector3D mirrorLightValue;
 
     int index = y * this->currWidth + x;
     if (index >= 0  && index < this->currHeight * this->currWidth) {
         if (z > this->zbuffer->at(index)) {
             this->zbuffer->at(index) = z;
 
+            QColor normalPixelColor = this->normalMap->pixelColor(uv_x, uv_y);
+            QVector3D normalFromMap(normalPixelColor.red(), normalPixelColor.green(), normalPixelColor.blue());
+            normalFromMap = (2 * normalFromMap - QVector3D(255, 255, 255)).normalized();
+
             backgroundLightValue = this->backgroundLight;
             diffuseLightValue = this->calcDiffuseLight(point, normal);
-            mirrorLightValue = this->calcMirrorlight(point, normal);
 
-            totalLight = backgroundLightValue + diffuseLightValue + mirrorLightValue;
+            QColor mirrorPixelColor = this->mirrorMap->pixelColor(uv_x, uv_y);
+            QVector3D mirrorCoeffFromMap(mirrorPixelColor.red(), mirrorPixelColor.green(), mirrorPixelColor.blue());
+            mirrorLightValue = this->calcMirrorlight(point, normal, mirrorCoeffFromMap);
+
+            totalLight = backgroundLightValue + diffuseLightValue;
 
             QColor pixelColor = this->diffuseMap->pixelColor(uv_x, uv_y);
+
             this->buffer[4 * index + 3] = -1;
-            this->buffer[4 * index + 2] = totalLight * pixelColor.red();
-            this->buffer[4 * index + 1] = totalLight * pixelColor.green();
-            this->buffer[4 * index + 0] = totalLight * pixelColor.blue();
+            this->buffer[4 * index + 2] = totalLight * (pixelColor.red());
+            this->buffer[4 * index + 1] = totalLight * (pixelColor.green());
+            this->buffer[4 * index + 0] = totalLight * (pixelColor.blue());
         }
     }
 }
 
 bool WorkerThread::isBackfaceCulling(std::vector<QVector3D> *points) {
-
     QVector3D norm = this->model->cross(points->at(2) - points->at(0), points->at(1) - points->at(0)).normalized();
     if (QVector3D::dotProduct(norm, this->eye.normalized()) < 0) {
         return true;
@@ -195,16 +210,18 @@ float WorkerThread::calcDiffuseLight(QVector3D point, QVector3D normal) {
     return diff * 1;
 }
 
-float WorkerThread::calcMirrorlight(QVector3D point, QVector3D normal) {
+QVector3D WorkerThread::calcMirrorlight(QVector3D point, QVector3D normal, QVector3D mirrorCoeffFromMap) {
     QVector3D rawPoint = this->getRawPoint(point);
     QVector3D viewDir = (this->eye - rawPoint).normalized();
-    float mirrorCoeff = 0.7f;
     QVector3D normalNormalized = normal.normalized();
     QVector3D lightNormalized = (this->light).normalized();
 
     QVector3D R = lightNormalized - 2 * QVector3D::dotProduct(normalNormalized, lightNormalized) * normalNormalized;
 
-    float mirrorLight = mirrorCoeff * std::pow(std::max(QVector3D::dotProduct(R.normalized(), viewDir), 0.f), 32) * 1;
+
+    float coeff = 0.7f;
+
+    QVector3D mirrorLight = coeff * std::pow(std::max(QVector3D::dotProduct(R.normalized(), viewDir), 0.f), 32) * mirrorCoeffFromMap;
     return mirrorLight;
 }
 

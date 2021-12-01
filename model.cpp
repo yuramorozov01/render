@@ -23,6 +23,28 @@ bool Model::loadDiffuseMap(const char *path) {
     return res;
 }
 
+bool Model::loadNormalMap(const char *path) {
+    bool res = false;
+
+    if (path != nullptr) {
+        QImage tmpNormalMap = QImage(path);
+        this->normalMap = new QImage(tmpNormalMap.mirrored());
+        res = true;
+    }
+    return res;
+}
+
+bool Model::loadMirrorMap(const char *path) {
+    bool res = false;
+
+    if (path != nullptr) {
+        QImage tmpMirrorMap = QImage(path);
+        this->mirrorMap = new QImage(tmpMirrorMap.mirrored());
+        res = true;
+    }
+    return res;
+}
+
 std::vector<QVector3D>* Model::getVertices() {
     return &this->vertices;
 }
@@ -37,6 +59,14 @@ std::vector<QVector3D>* Model::getNormals() {
 
 QImage* Model::getDiffuseMap() {
     return this->diffuseMap;
+}
+
+QImage* Model::getNormalMap() {
+    return this->normalMap;
+}
+
+QImage* Model::getMirrorMap() {
+    return this->mirrorMap;
 }
 
 void Model::applyMatrix(QMatrix4x4 transform) {

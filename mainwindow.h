@@ -55,6 +55,8 @@ private:
     Model *model;
     bool isLoaded = false;
     bool isLoadedDiffuseMap = false;
+    bool isLoadedNormalMap = false;
+    bool isLoadedMirrorMap = false;
 
     std::vector<QVector3D> *vertices;
     std::vector<QVector3D> *uvs;
@@ -82,7 +84,10 @@ private:
     unsigned char *buffer;
     unsigned char *fastBufferToDraw;
     QImage bufferToDraw;
+
     QImage *diffuseMap;
+    QImage *normalMap;
+    QImage *mirrorMap;
 
     std::vector<float> *zbuffer;
 
