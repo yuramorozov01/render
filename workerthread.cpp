@@ -58,6 +58,11 @@ void WorkerThread::setMirrorMap(QImage *mirrorMap) {
     this->mirrorMap = mirrorMap;
 }
 
+void WorkerThread::setEmissiveMap(QImage *emissiveMap, bool *lightMap) {
+    this->emissiveMap = emissiveMap;
+    this->lightMap = lightMap;
+}
+
 void WorkerThread::setBaseTransformMatrix(QMatrix4x4 baseTransformMatrix) {
     this->baseTransformMatrix = baseTransformMatrix;
 }
@@ -167,6 +172,7 @@ void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, QVector3D normal
     float backgroundLightValue = 0.f;
     float diffuseLightValue = 0.f;
     QVector3D mirrorLightValue;
+    QVector3D mirrorCoeffFromMap(0.5, 0.5, 0.5);
 
     int index = y * this->currWidth + x;
     if (index >= 0  && index < this->currHeight * this->currWidth) {
@@ -176,6 +182,9 @@ void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, QVector3D normal
             QColor normalPixelColor = this->normalMap->pixelColor(uv_x, uv_y);
             QVector3D normalFromMap(normalPixelColor.red(), normalPixelColor.green(), normalPixelColor.blue());
             normalFromMap = (2 * normalFromMap - QVector3D(255, 255, 255)).normalized();
+            QVector4D temp_vect_4d = normalFromMap.toVector4D();
+            temp_vect_4d = this->transformMatrix * temp_vect_4d;
+            normalFromMap = this->model->vector4Dto3D(this->baseTransformMatrix.inverted() * temp_vect_4d).normalized();
 
             backgroundLightValue = this->backgroundLight;
             diffuseLightValue = this->calcDiffuseLight(point, normal);
@@ -187,6 +196,10 @@ void WorkerThread::setPixel(QVector3D point, QVector3D uvPoint, QVector3D normal
             totalLight = backgroundLightValue + diffuseLightValue;
 
             QColor pixelColor = this->diffuseMap->pixelColor(uv_x, uv_y);
+            if (this->emissiveMap->pixelColor(uv_x, uv_y).value() != 0) {
+                this->lightMap[index] = true;
+//                qDebug() << pixelColor << this->emissiveMap->pixelColor(uv_x, uv_y);
+            }
 
             this->buffer[4 * index + 3] = -1;
             this->buffer[4 * index + 2] = totalLight * (pixelColor.red() + mirrorLightValue.x());

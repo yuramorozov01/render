@@ -45,6 +45,17 @@ bool Model::loadMirrorMap(const char *path) {
     return res;
 }
 
+bool Model::loadEmissiveMap(const char *path) {
+    bool res = false;
+
+    if (path != nullptr) {
+        QImage tmpEmissiveMap = QImage(path);
+        this->emissiveMap = new QImage(tmpEmissiveMap.mirrored());
+        res = true;
+    }
+    return res;
+}
+
 std::vector<QVector3D>* Model::getVertices() {
     return &this->vertices;
 }
@@ -67,6 +78,10 @@ QImage* Model::getNormalMap() {
 
 QImage* Model::getMirrorMap() {
     return this->mirrorMap;
+}
+
+QImage* Model::getEmissiveMap() {
+    return this->emissiveMap;
 }
 
 void Model::applyMatrix(QMatrix4x4 transform) {

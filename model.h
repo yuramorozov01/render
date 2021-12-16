@@ -19,6 +19,7 @@ public:
     bool loadDiffuseMap(const char *path=nullptr);
     bool loadNormalMap(const char *path=nullptr);
     bool loadMirrorMap(const char *path=nullptr);
+    bool loadEmissiveMap(const char *path=nullptr);
 
     std::vector<QVector3D>* getVertices();
     std::vector<QVector3D>* getUvs();
@@ -26,6 +27,7 @@ public:
     QImage *getDiffuseMap();
     QImage *getNormalMap();
     QImage *getMirrorMap();
+    QImage *getEmissiveMap();
 
     void applyMatrix(QMatrix4x4 transform);
 
@@ -53,6 +55,7 @@ private:
     QImage *diffuseMap;
     QImage *normalMap;
     QImage *mirrorMap;
+    QImage *emissiveMap;
 
 };
 

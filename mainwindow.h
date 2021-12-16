@@ -31,6 +31,9 @@
 
 #include <QLabel>
 
+#include <QRgb>
+
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -57,6 +60,7 @@ private:
     bool isLoadedDiffuseMap = false;
     bool isLoadedNormalMap = false;
     bool isLoadedMirrorMap = false;
+    bool isLoadedEmissiveMap = false;
 
     std::vector<QVector3D> *vertices;
     std::vector<QVector3D> *uvs;
@@ -69,7 +73,7 @@ private:
 
     std::map<int, bool> pressedKeys;
 
-    QVector3D eye = QVector3D(0.f, 0.f, 100.f);
+    QVector3D eye = QVector3D(0.f, 0.f, 10.f);
     QVector3D target = QVector3D(0.f, 0.f, 0.f);
     QVector3D up = QVector3D(0.f, 1.f, 0.f);
 
@@ -84,10 +88,19 @@ private:
     unsigned char *buffer;
     unsigned char *fastBufferToDraw;
     QImage bufferToDraw;
+    QImage bloomedBuffer;
+
+    bool isBloom = true;
+    unsigned char *lowBrightnessBuffer;
+    unsigned char *gaussianBlurBuffer;
+    unsigned char *combinedBuffer;
 
     QImage *diffuseMap;
     QImage *normalMap;
     QImage *mirrorMap;
+    QImage *emissiveMap;
+    bool *lightMap;
+    bool *lightMapCached;
 
     std::vector<float> *zbuffer;
 
@@ -115,6 +128,11 @@ private:
     void calcNewTransformMatrix();
 
     void makeMove();
+
+    void makeBufferBloomed();
+    QImage blurImage(const QImage& image, const QRect& rect, int radius);
+    QImage brightImage(const QImage& image, int brightness);
+    QImage combineImages(const QImage& img1, const QImage& img2, int opacity, QPainter::CompositionMode mode);
 
 private slots:
     void processTimer();

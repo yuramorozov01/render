@@ -41,6 +41,7 @@ public:
     void setDiffuseMap(QImage *diffuseMap);
     void setNormalMap(QImage *normalMap);
     void setMirrorMap(QImage *mirrorMap);
+    void setEmissiveMap(QImage *emissiveMap, bool *lightMap);
 
     void setBaseTransformMatrix(QMatrix4x4 baseTransformMatrix);
     void setTransformMatrix(QMatrix4x4 transformMatrix);
@@ -55,7 +56,7 @@ private:
     Model *model;
 
     QVector3D light = QVector3D(0.f, 1.f, 1.f);
-    QVector3D eye = QVector3D(0.f, 0.f, 100.f);
+    QVector3D eye = QVector3D(0.f, 0.f, 10.f);
 
     std::vector<QVector3D> *vertices;
     std::vector<QVector3D> *uvs;
@@ -63,6 +64,8 @@ private:
     QImage *diffuseMap;
     QImage *normalMap;
     QImage *mirrorMap;
+    QImage *emissiveMap;
+    bool *lightMap;
 
     QMatrix4x4 transformMatrix = QMatrix4x4(1, 0, 0, 0,
                                             0, 1, 0, 0,
